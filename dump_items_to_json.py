@@ -54,7 +54,3 @@ for filename in all_files:
 
 with open(output_dir.joinpath('items.json'), 'w') as outfile:
     json.dump(item_dict, outfile, indent=1)
-
-with open(output_dir.joinpath('itemsmin.js'), 'w') as outfile:
-    minified_json = json.dumps(item_dict, separators=(',',':'))
-    outfile.write('items=' + minified_json)
