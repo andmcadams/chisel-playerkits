@@ -7,6 +7,12 @@ from typing import List
 from pathlib import Path
 from PIL import Image
 from flask import Flask, make_response, abort, request, jsonify
+from dotenv import load_dotenv
+load_dotenv()
+
+ITEMS_JSON_PATH = Path(os.getenv('DATAFILES_DIR'), 'items.json')
+RENDERER_PATH = Path(os.getenv('RENDERER_PATH'))
+TMP_DIR = '/tmp'
 
 ROTATIONS = {
     0: 128,
@@ -14,15 +20,13 @@ ROTATIONS = {
     2: 1152,
     3: 1664,
 }
-RENDERER_PATH = './renderer-all.jar'
-TMP_DIR = '/tmp'
 COMMA = ','
 XAN2D = 96
 ZAN2D = 0
 EQUIPPED_ITEM_OFFSET = 2048
 
 # Read json file
-with open('./data_files/items.json', 'r') as f:
+with open(ITEMS_JSON_PATH, 'r') as f:
     ITEM_CONFIG = json.load(f)
 
 app = Flask(__name__)
@@ -107,7 +111,7 @@ def handle_request(ids: List[str], rotation: int, pose_anim: int):
 def generate_render(request_id: str, outdir: str, cache: str, playerkit: List, colorkit: List, pose_anim: int, xan2d: int, yan2d: int, zan2d: int, is_female: bool):
     subprocess.run(
         [
-            'java', '-jar', RENDERER_PATH, '--cache', cache, '--out', outdir,
+            'java', '-jar', str(RENDERER_PATH), '--cache', cache, '--out', outdir,
             '--playerkit', COMMA.join([str(k) for k in playerkit]), '--playercolors', COMMA.join([str(k) for k in colorkit]),
             '--poseanim', str(pose_anim), '--xan2d', str(xan2d), '--yan2d', str(yan2d), '--zan2d', str(zan2d),
             f'{"--playerfemale" if is_female else ""}'
@@ -117,7 +121,7 @@ def generate_render(request_id: str, outdir: str, cache: str, playerkit: List, c
 def generate_chathead(request_id: str, outdir: str, cache: str, playerkit: List, colorkit: List, is_female: bool):
     subprocess.run(
         [
-            'java', '-jar', RENDERER_PATH, '--cache', cache, '--out', outdir,
+            'java', '-jar', str(RENDERER_PATH), '--cache', cache, '--out', outdir,
             '--playerkit', COMMA.join([str(k) for k in playerkit]), '--playercolors', COMMA.join([str(k) for k in colorkit]),
             '--playerchathead', '--anim', '589', '--lowres', '--crophead', '--yan2d', '128',
             f'{"--playerfemale" if is_female else ""}'
