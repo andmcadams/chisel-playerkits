@@ -1,9 +1,12 @@
 import json
 import os
 import re
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv()
 
-input_dir = './osrs-flatcache/dump/item_defs/'
-output_dir = './data_files/'
+input_dir = Path(os.getenv('FLATCACHE_DIR'), 'dump', 'item_defs')
+output_dir = Path(os.getenv('DATAFILES_DIR'))
 
 def natural_key(string_):
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
@@ -25,7 +28,7 @@ def parseActions(actions, save_nones=True):
 bad_slots = set([0, 12, 13])
 item_dict = {}
 for filename in all_files:
-    with open(input_dir + filename, encoding='utf8') as f:
+    with open(input_dir.joinpath(filename), encoding='utf8') as f:
         data = json.load(f)
     resdata = {}
     for old_param_name, new_param_name in good_params.items():
@@ -49,9 +52,9 @@ for filename in all_files:
 
         item_dict[resdata['id']] = resdata
 
-with open(output_dir + 'items.json', 'w') as outfile:
+with open(output_dir.joinpath('items.json'), 'w') as outfile:
     json.dump(item_dict, outfile, indent=1)
 
-with open(output_dir + 'itemsmin.js', 'w') as outfile:
+with open(output_dir.joinpath('itemsmin.js'), 'w') as outfile:
     minified_json = json.dumps(item_dict, separators=(',',':'))
     outfile.write('items=' + minified_json)

@@ -3,3 +3,5 @@ caches
 osrs-flatcache
 __pycache__
 *.jar
+.env
+.venv
