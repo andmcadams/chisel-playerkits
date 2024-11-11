@@ -6,8 +6,9 @@ import base64
 from typing import List
 from pathlib import Path
 from PIL import Image
-from flask import Flask, make_response, abort, request, jsonify
+from flask import Flask, make_response, abort, request, jsonify, send_from_directory
 from dotenv import load_dotenv
+from werkzeug.datastructures import Headers
 load_dotenv()
 
 ITEMS_JSON_PATH = Path(os.getenv('DATAFILES_DIR'), 'items.json')
@@ -41,13 +42,22 @@ def render():
     try:
         item_id = int(data['id'])
         rotation = ROTATIONS[int(data['rotation'])]
-        pose_anim = data['poseAnim']
+        pose_anim = int(data['poseAnim'])
     except (TypeError, ValueError, KeyError):
         abort(400)
 
     item_ids = [item_id]
     payload = handle_request(item_ids, rotation, pose_anim)
+
     return make_response(payload)
+
+@app.route('/assets/<path:path>', methods=['GET'])
+def assets(path):
+    return send_from_directory('dist/assets', path)
+
+@app.route('/', methods=['GET'])
+def index():
+    return send_from_directory('dist', 'index.html')
 
 
 def equip_item(playerkit, item_id, wearpos1, wearpos2, wearpos3):
@@ -63,47 +73,48 @@ def equip_item(playerkit, item_id, wearpos1, wearpos2, wearpos3):
 def handle_request(ids: List[str], rotation: int, pose_anim: int):
     # Set up some hardcoded values for the render
     male_playerkit = [0, 0, 0, 0, 274, 0, 282, 292, 259, 289, 298, 270]
-    male_colorkit = [0, 6, 9, 0, 1]
-
     female_playerkit = [0, 0, 0, 0, 312, 0, 320, 326, 382, 324, 336, 552]
-    female_colorkit = [5, 19, 9, 1, 2]
+    colorkit = [0, 6, 9, 0, 1]
 
     request_id = str(uuid.uuid4())
     outdir = Path(TMP_DIR, request_id)
     # TODO: Make this take in an arbitrary cache
-    cache = './caches/cache'
+    cache = '../caches/cache'
 
     # We need to make sure we "equip" the items and zero out any other playerkit slots that are overridden
+    item_names = []
     for item_id in ids:
-        item_def = ITEM_CONFIG[item_id]
+        item_def = ITEM_CONFIG[str(item_id)]
         male_playerkit = equip_item(male_playerkit, item_def['id'], item_def['wearpos1'], item_def['wearpos2'], item_def['wearpos3'])
         female_playerkit = equip_item(female_playerkit, item_def['id'], item_def['wearpos1'], item_def['wearpos2'], item_def['wearpos3'])
+        item_names.append(item_def['name'])
 
     should_render_chatheads = True if item_def['wearpos1'] == 0 else False
 
     # Generate the equipped and chathead renders as necessary
-    generate_render(request_id, outdir, cache, male_playerkit, male_colorkit, pose_anim, XAN2D, rotation, ZAN2D, False)
-    generate_render(request_id, outdir, cache, female_playerkit, female_colorkit, pose_anim, XAN2D, rotation, ZAN2D, True)
+    generate_render(request_id, outdir, cache, male_playerkit, colorkit, pose_anim, XAN2D, rotation, ZAN2D, False)
+    generate_render(request_id, outdir, cache, female_playerkit, colorkit, pose_anim, XAN2D, rotation, ZAN2D, True)
     if should_render_chatheads:
-        generate_chathead(request_id, outdir, cache, male_playerkit, male_colorkit, False)
-        generate_chathead(request_id, outdir, cache, female_playerkit, female_colorkit, True)
+        generate_chathead(request_id, outdir, cache, male_playerkit, colorkit, False)
+        generate_chathead(request_id, outdir, cache, female_playerkit, colorkit, True)
         flip_chatheads(outdir)
 
     # Create the payload to send back to the client
     def b64encode_file(filename):
         with open(filename, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
+            return f"data:image/png;base64, {base64.b64encode(f.read()).decode('utf-8')}"
 
-    male_filename = f'{str(male_playerkit)}_{str(male_colorkit)}.png'
-    female_filename = f'{str(female_playerkit)}_{str(female_colorkit)}.png'
+    male_filename = f'{str(male_playerkit)}_{str(colorkit)}.png'
+    female_filename = f'{str(female_playerkit)}_{str(colorkit)}.png'
     payload = {
-        'request_id': request_id,
-        'maleRenderBlob': b64encode_file(outdir.joinpath('player', male_filename)),
-        'femaleRenderBlob': b64encode_file(outdir.joinpath('player', female_filename)),
+        'requestId': request_id,
+        'itemNames': item_names,
+        'maleRenderData': b64encode_file(outdir.joinpath('player', male_filename)),
+        'femaleRenderData': b64encode_file(outdir.joinpath('player', female_filename)),
     }
     if should_render_chatheads:
-        payload['maleChatheadRenderBlob'] = b64encode_file(outdir.joinpath('playerchathead', male_filename))
-        payload['femaleChatheadRenderBlob'] = b64encode_file(outdir.joinpath('playerchathead', female_filename))
+        payload['maleChatheadRenderData'] = b64encode_file(outdir.joinpath('playerchathead', male_filename))
+        payload['femaleChatheadRenderData'] = b64encode_file(outdir.joinpath('playerchathead', female_filename))
 
     return payload
 
@@ -111,7 +122,7 @@ def handle_request(ids: List[str], rotation: int, pose_anim: int):
 def generate_render(request_id: str, outdir: str, cache: str, playerkit: List, colorkit: List, pose_anim: int, xan2d: int, yan2d: int, zan2d: int, is_female: bool):
     subprocess.run(
         [
-            'java', '-jar', str(RENDERER_PATH), '--cache', cache, '--out', outdir,
+            'java', '-jar', str(RENDERER_PATH), '--cache', str(cache), '--out', str(outdir),
             '--playerkit', COMMA.join([str(k) for k in playerkit]), '--playercolors', COMMA.join([str(k) for k in colorkit]),
             '--poseanim', str(pose_anim), '--xan2d', str(xan2d), '--yan2d', str(yan2d), '--zan2d', str(zan2d),
             f'{"--playerfemale" if is_female else ""}'
@@ -121,7 +132,7 @@ def generate_render(request_id: str, outdir: str, cache: str, playerkit: List, c
 def generate_chathead(request_id: str, outdir: str, cache: str, playerkit: List, colorkit: List, is_female: bool):
     subprocess.run(
         [
-            'java', '-jar', str(RENDERER_PATH), '--cache', cache, '--out', outdir,
+            'java', '-jar', str(RENDERER_PATH), '--cache', str(cache), '--out', str(outdir),
             '--playerkit', COMMA.join([str(k) for k in playerkit]), '--playercolors', COMMA.join([str(k) for k in colorkit]),
             '--playerchathead', '--anim', '589', '--lowres', '--crophead', '--yan2d', '128',
             f'{"--playerfemale" if is_female else ""}'
