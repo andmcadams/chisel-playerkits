@@ -50,7 +50,8 @@ for filename in all_files:
             resdata['wearpos3'] = -1 if resdata['wearpos3'] == 0 else resdata['wearpos3']
 
 
-        item_dict[resdata['id']] = resdata
+        if not(resdata['wearpos1'] == -1 and resdata['wearpos2'] == -1 and resdata['wearpos3'] == -1):
+            item_dict[resdata['id']] = resdata
 
 with open(output_dir.joinpath('items.json'), 'w') as outfile:
     json.dump(item_dict, outfile, indent=1)

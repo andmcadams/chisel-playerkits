@@ -13,7 +13,7 @@ load_dotenv()
 
 ITEMS_JSON_PATH = Path(os.getenv('DATAFILES_DIR'), 'items.json')
 RENDERER_PATH = Path(os.getenv('RENDERER_PATH'))
-TMP_DIR = '/tmp'
+TMP_DIR = '/tmp/playerkit'
 
 ROTATIONS = {
     0: 128,
