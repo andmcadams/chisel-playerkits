@@ -40,13 +40,12 @@ def render():
 
     # Validate and parse item ID
     try:
-        item_id = int(data['id'])
+        item_ids = [int(d) for d in data['ids'].split(',')]
         rotation = ROTATIONS[int(data['rotation'])]
         pose_anim = int(data['poseAnim'])
     except (TypeError, ValueError, KeyError):
         abort(400)
 
-    item_ids = [item_id]
     payload = handle_request(item_ids, rotation, pose_anim)
 
     return make_response(payload)
