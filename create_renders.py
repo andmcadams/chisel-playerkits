@@ -40,7 +40,7 @@ def render():
 
     # Validate and parse item ID
     try:
-        item_ids = [int(d) for d in data['ids'].split(',')]
+        item_ids = [int(d) for d in data['id'].split(',')]
         rotation = ROTATIONS[int(data['rotation'])]
         pose_anim = int(data['poseAnim'])
     except (TypeError, ValueError, KeyError):
