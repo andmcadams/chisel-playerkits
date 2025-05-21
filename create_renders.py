@@ -82,13 +82,14 @@ def handle_request(ids: List[str], rotation: int, pose_anim: int):
 
     # We need to make sure we "equip" the items and zero out any other playerkit slots that are overridden
     item_names = []
+    should_render_chatheads = False
     for item_id in ids:
         item_def = ITEM_CONFIG[str(item_id)]
         male_playerkit = equip_item(male_playerkit, item_def['id'], item_def['wearpos1'], item_def['wearpos2'], item_def['wearpos3'])
         female_playerkit = equip_item(female_playerkit, item_def['id'], item_def['wearpos1'], item_def['wearpos2'], item_def['wearpos3'])
         item_names.append(item_def['name'])
 
-    should_render_chatheads = True if item_def['wearpos1'] == 0 else False
+        should_render_chatheads = True if item_def['wearpos1'] == 0 else should_render_chatheads
 
     # Generate the equipped and chathead renders as necessary
     male_outdir = outdir.joinpath('male')
