@@ -91,12 +91,15 @@ def handle_request(ids: List[str], rotation: int, pose_anim: int):
     should_render_chatheads = True if item_def['wearpos1'] == 0 else False
 
     # Generate the equipped and chathead renders as necessary
-    generate_render(request_id, outdir, cache, male_playerkit, colorkit, pose_anim, XAN2D, rotation, ZAN2D, False)
-    generate_render(request_id, outdir, cache, female_playerkit, colorkit, pose_anim, XAN2D, rotation, ZAN2D, True)
+    male_outdir = outdir.joinpath('male')
+    female_outdir = outdir.joinpath('female')
+    generate_render(request_id, male_outdir, cache, male_playerkit, colorkit, pose_anim, XAN2D, rotation, ZAN2D, False)
+    generate_render(request_id, female_outdir, cache, female_playerkit, colorkit, pose_anim, XAN2D, rotation, ZAN2D, True)
     if should_render_chatheads:
-        generate_chathead(request_id, outdir, cache, male_playerkit, colorkit, False)
-        generate_chathead(request_id, outdir, cache, female_playerkit, colorkit, True)
-        flip_chatheads(outdir)
+        generate_chathead(request_id, male_outdir, cache, male_playerkit, colorkit, False)
+        generate_chathead(request_id, female_outdir, cache, female_playerkit, colorkit, True)
+        flip_chatheads(male_outdir)
+        flip_chatheads(female_outdir)
 
     # Create the payload to send back to the client
     def b64encode_file(filename):
@@ -108,12 +111,12 @@ def handle_request(ids: List[str], rotation: int, pose_anim: int):
     payload = {
         'requestId': request_id,
         'itemNames': item_names,
-        'maleRenderData': b64encode_file(outdir.joinpath('player', male_filename)),
-        'femaleRenderData': b64encode_file(outdir.joinpath('player', female_filename)),
+        'maleRenderData': b64encode_file(male_outdir.joinpath('player', male_filename)),
+        'femaleRenderData': b64encode_file(female_outdir.joinpath('player', female_filename)),
     }
     if should_render_chatheads:
-        payload['maleChatheadRenderData'] = b64encode_file(outdir.joinpath('playerchathead', male_filename))
-        payload['femaleChatheadRenderData'] = b64encode_file(outdir.joinpath('playerchathead', female_filename))
+        payload['maleChatheadRenderData'] = b64encode_file(male_outdir.joinpath('playerchathead', male_filename))
+        payload['femaleChatheadRenderData'] = b64encode_file(female_outdir.joinpath('playerchathead', female_filename))
 
     return payload
 
