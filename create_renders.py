@@ -128,6 +128,7 @@ def generate_render(request_id: str, outdir: str, cache: str, playerkit: List, c
             'java', '-jar', str(RENDERER_PATH), '--cache', str(cache), '--out', str(outdir),
             '--playerkit', COMMA.join([str(k) for k in playerkit]), '--playercolors', COMMA.join([str(k) for k in colorkit]),
             '--poseanim', str(pose_anim), '--xan2d', str(xan2d), '--yan2d', str(yan2d), '--zan2d', str(zan2d),
+            '--no-zbuf',
             f'{"--playerfemale" if is_female else ""}'
         ],
         check=True
@@ -137,7 +138,7 @@ def generate_chathead(request_id: str, outdir: str, cache: str, playerkit: List,
         [
             'java', '-jar', str(RENDERER_PATH), '--cache', str(cache), '--out', str(outdir),
             '--playerkit', COMMA.join([str(k) for k in playerkit]), '--playercolors', COMMA.join([str(k) for k in colorkit]),
-            '--playerchathead', '--anim', '589', '--lowres', '--crophead', '--yan2d', '128',
+            '--playerchathead', '--anim', '589', '--lowres', '--crophead', '--yan2d', '166', '--no-zbuf',
             f'{"--playerfemale" if is_female else ""}'
         ],
         check=True
